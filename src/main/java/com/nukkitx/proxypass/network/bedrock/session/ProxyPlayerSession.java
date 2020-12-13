@@ -1,15 +1,24 @@
 package com.nukkitx.proxypass.network.bedrock.session;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nukkitx.math.vector.Vector3f;
+import com.nukkitx.math.vector.Vector3i;
 import com.nukkitx.network.util.DisconnectReason;
 import com.nukkitx.protocol.bedrock.BedrockClientSession;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
 import com.nukkitx.protocol.bedrock.BedrockServerSession;
 import com.nukkitx.protocol.bedrock.BedrockSession;
+import com.nukkitx.protocol.bedrock.data.AttributeData;
+import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
 import com.nukkitx.protocol.bedrock.exception.PacketSerializeException;
 import com.nukkitx.protocol.bedrock.handler.BatchHandler;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
+import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
 import com.nukkitx.proxypass.ProxyPass;
+import com.owlike.genson.Genson;
+import com.owlike.genson.GensonBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import lombok.AccessLevel;
@@ -42,6 +51,17 @@ public class ProxyPlayerSession {
     private final KeyPair proxyKeyPair = EncryptionUtils.createKeyPair();
     private final Deque<String> logBuffer = new ArrayDeque<>();
     private volatile boolean closed = false;
+    // TODO: private
+    public static Genson jsonSerializer = new GensonBuilder()
+            .useConstructorWithArguments(true)
+            .exclude(Vector3i.class)
+            .exclude(ItemData.class)
+            // .exclude(AttributeData.class)
+            .exclude(Vector3f.class)
+            // .exclude(StartGamePacket.ItemEntry.class)
+            .useClassMetadata(true)
+            .useRuntimeType(true)
+            .create();
 
     public ProxyPlayerSession(BedrockServerSession upstream, BedrockClientSession downstream, ProxyPass proxy, AuthData authData) {
         this.upstream = upstream;
@@ -120,7 +140,8 @@ public class ProxyPlayerSession {
                     ProxyPlayerSession.this.log(() -> logPrefix + packet.toString());
                     if (proxy.getConfiguration().isLoggingPackets() &&
                             proxy.getConfiguration().getLogTo().logToConsole) {
-                        System.out.println(logPrefix + packet.toString());
+                        // System.out.println(logPrefix + packet.toString());
+                        // System.out.println(logPrefix + jsonSerializer.toJson(packet));
                     }
                 }
 
@@ -138,16 +159,32 @@ public class ProxyPlayerSession {
                     try {
                         ProxyPass.CODEC.tryEncode(buffer, packet, session);
                         BedrockPacket packet2 = ProxyPass.CODEC.tryDecode(buffer, packetId, session);
+                        // buffer.release();
+
+                        // TODO: Separate from main testing?
+                        String jsonData = jsonSerializer.serialize(packet);
+                        // BedrockPacket packet2 = null;
+                        packet2 = jsonSerializer.deserialize(jsonData, packet.getClass());
+
+                        // Reencode json thingy
+                        /* buffer = ByteBufAllocator.DEFAULT.ioBuffer();
+                        ProxyPass.CODEC.tryEncode(buffer, packet2, session);
+                        packet2 = ProxyPass.CODEC.tryDecode(buffer, packetId, session); */
+
                         if (!Objects.equals(packet, packet2)) {
                             // Something went wrong in serialization.
                             log.warn("Packets instances not equal:\n Original  : {}\nRe-encoded : {}",
                                     packet, packet2);
+                        } else {
+                            log.warn("Equal!!!!!!!!!:\n Original  : {}\nRe-encoded : {}",
+                                    packet.getClass(), packet2.getClass());
                         }
                     } catch (PacketSerializeException e) {
                         //ignore
                     } finally {
                         buffer.release();
                     }
+                    // System.out.println(ProxyPass.testPacket(packet));
                 }
             }
 

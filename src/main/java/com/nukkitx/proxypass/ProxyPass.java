@@ -1,5 +1,6 @@
 package com.nukkitx.proxypass;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
@@ -10,24 +11,30 @@ import com.nukkitx.nbt.NBTInputStream;
 import com.nukkitx.nbt.NBTOutputStream;
 import com.nukkitx.nbt.NbtMap;
 import com.nukkitx.nbt.NbtUtils;
-import com.nukkitx.protocol.bedrock.BedrockClient;
-import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
-import com.nukkitx.protocol.bedrock.BedrockServer;
+import com.nukkitx.protocol.bedrock.*;
 import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
+import com.nukkitx.protocol.bedrock.v407.Bedrock_v407;
+import com.nukkitx.protocol.bedrock.v408.Bedrock_v408;
 import com.nukkitx.proxypass.network.ProxyBedrockEventHandler;
+import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
+
 import io.netty.util.ResourceLeakDetector;
+import jakarta.xml.bind.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
+import org.msgpack.MessagePack;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import javax.xml.namespace.QName;
+import javax.xml.transform.stream.StreamSource;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -70,7 +77,82 @@ public class ProxyPass {
     private Path sessionsDir;
     private Path dataDir;
 
-    public static void main(String[] args) {
+    public static String marshall(Object packet){
+        StringWriter writer = new StringWriter();
+        JAXBContext context;
+        try {
+            context = JAXBContext.newInstance(packet.getClass());
+            Marshaller m = context.createMarshaller();
+
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            JAXBElement rootElement = new JAXBElement(new QName(packet.getClass().getSimpleName()), packet.getClass(), packet);
+            m.marshal(rootElement, writer);
+            return writer.toString();
+        } catch (JAXBException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static Object unMarshall(String input, Class type){
+        JAXBContext context;
+        try {
+            context = JAXBContext.newInstance(type);
+            Unmarshaller m = context.createUnmarshaller();
+            StreamSource source = new StreamSource(new StringReader(input));
+            return m.unmarshal(source, type).getValue();
+        } catch (JAXBException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static boolean testPacket(BedrockPacket packet) {
+        /* String text = marshall(packet);
+        BedrockPacket reserialized = (BedrockPacket) unMarshall(text, packet.getClass());
+
+        boolean isEqual = packet.equals(reserialized);
+
+        if (!isEqual) {
+            System.out.println("--------------------------------------------");
+            System.out.println("Packets not equal!");
+            System.out.println(packet);
+            System.out.println(reserialized);
+        }
+
+        return isEqual; */
+
+        return false;
+    }
+
+    public static void main(String[] args) throws IOException {
+        // String serializedObject = "";
+        BedrockPacket packet = new StartGamePacket();
+        System.out.println(testPacket(packet));
+
+        /* MessagePack msgpack = new MessagePack();
+        msgpack.register(BedrockPacket.class);
+        byte[] raw = msgpack.write(packet); */
+
+        // serialize the object
+        /* try {
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            ObjectOutputStream so = new ObjectOutputStream(bo);
+            so.writeObject(packet);
+            so.flush();
+            serializedObject = bo.toString();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+        System.out.println(serializedObject); */
+
+        /* try {
+            System.out.println(ProxyPlayerSession.jsonSerializer.writeValueAsString(new StartGamePacket()));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } */
+
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
         ProxyPass proxy = new ProxyPass();
         try {
