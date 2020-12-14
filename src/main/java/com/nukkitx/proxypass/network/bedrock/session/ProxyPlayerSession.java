@@ -1,7 +1,9 @@
 package com.nukkitx.proxypass.network.bedrock.session;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.math.vector.Vector3i;
 import com.nukkitx.network.util.DisconnectReason;
@@ -14,6 +16,7 @@ import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
 import com.nukkitx.protocol.bedrock.exception.PacketSerializeException;
 import com.nukkitx.protocol.bedrock.handler.BatchHandler;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
+import com.nukkitx.protocol.bedrock.packet.SetEntityDataPacket;
 import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
 import com.nukkitx.proxypass.ProxyPass;
@@ -52,16 +55,7 @@ public class ProxyPlayerSession {
     private final Deque<String> logBuffer = new ArrayDeque<>();
     private volatile boolean closed = false;
     // TODO: private
-    public static Genson jsonSerializer = new GensonBuilder()
-            .useConstructorWithArguments(true)
-            .exclude(Vector3i.class)
-            .exclude(ItemData.class)
-            // .exclude(AttributeData.class)
-            .exclude(Vector3f.class)
-            // .exclude(StartGamePacket.ItemEntry.class)
-            .useClassMetadata(true)
-            .useRuntimeType(true)
-            .create();
+    public static ObjectMapper jsonSerializer = new ObjectMapper();
 
     public ProxyPlayerSession(BedrockServerSession upstream, BedrockClientSession downstream, ProxyPass proxy, AuthData authData) {
         this.upstream = upstream;
@@ -141,7 +135,11 @@ public class ProxyPlayerSession {
                     if (proxy.getConfiguration().isLoggingPackets() &&
                             proxy.getConfiguration().getLogTo().logToConsole) {
                         // System.out.println(logPrefix + packet.toString());
-                        // System.out.println(logPrefix + jsonSerializer.toJson(packet));
+                        try {
+                            System.out.println(logPrefix + jsonSerializer.writeValueAsString(packet));
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
 
@@ -162,9 +160,15 @@ public class ProxyPlayerSession {
                         // buffer.release();
 
                         // TODO: Separate from main testing?
-                        String jsonData = jsonSerializer.serialize(packet);
+                        String jsonData = jsonSerializer.writeValueAsString(packet);
                         // BedrockPacket packet2 = null;
-                        packet2 = jsonSerializer.deserialize(jsonData, packet.getClass());
+                        try {
+                            packet2 = jsonSerializer.readValue(jsonData, packet.getClass());
+                        } catch (JsonMappingException e) {
+                            System.out.println("Error in packet: " + packet.getClass());
+                            System.out.println("Data:            " + jsonData);
+                            e.printStackTrace();
+                        }
 
                         // Reencode json thingy
                         /* buffer = ByteBufAllocator.DEFAULT.ioBuffer();
@@ -176,11 +180,13 @@ public class ProxyPlayerSession {
                             log.warn("Packets instances not equal:\n Original  : {}\nRe-encoded : {}",
                                     packet, packet2);
                         } else {
-                            log.warn("Equal!!!!!!!!!:\n Original  : {}\nRe-encoded : {}",
-                                    packet.getClass(), packet2.getClass());
+                            /* log.warn("Equal!!!!!!!!!:\n Original  : {}\nRe-encoded : {}",
+                                    packet.getClass(), packet2.getClass()); */
                         }
                     } catch (PacketSerializeException e) {
                         //ignore
+                    } catch (JsonProcessingException e) {
+                        e.printStackTrace();
                     } finally {
                         buffer.release();
                     }
