@@ -1,5 +1,11 @@
 package com.nukkitx.proxypass.network.bedrock.session;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
+import com.nukkitx.math.vector.Vector3f;
+import com.nukkitx.math.vector.Vector3i;
 import com.nukkitx.network.util.DisconnectReason;
 import com.nukkitx.protocol.bedrock.BedrockClientSession;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
@@ -8,6 +14,8 @@ import com.nukkitx.protocol.bedrock.BedrockSession;
 import com.nukkitx.protocol.bedrock.handler.BatchHandler;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.NetworkStackLatencyPacket;
+import com.nukkitx.protocol.bedrock.packet.SetEntityDataPacket;
+import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
 import com.nukkitx.proxypass.ProxyPass;
 import io.netty.buffer.ByteBuf;
@@ -42,6 +50,9 @@ public class ProxyPlayerSession {
     private final KeyPair proxyKeyPair = EncryptionUtils.createKeyPair();
     private final Deque<String> logBuffer = new ArrayDeque<>();
     private volatile boolean closed = false;
+
+    // TODO: private
+    public static ObjectMapper jsonSerializer = new ObjectMapper();
 
     public ProxyPlayerSession(BedrockServerSession upstream, BedrockClientSession downstream, ProxyPass proxy, AuthData authData) {
         this.upstream = upstream;
@@ -106,8 +117,20 @@ public class ProxyPlayerSession {
             boolean wrapperHandled = !ProxyPlayerSession.this.proxy.getConfiguration().isPassingThrough();
             List<BedrockPacket> unhandled = new ArrayList<>();
             for (BedrockPacket packet : packets) {
-                if (session.isLogging() && log.isTraceEnabled() && !(packet instanceof NetworkStackLatencyPacket)) {
-                    log.trace(this.logPrefix + " {}: {}", session.getAddress(), packet);
+                if (!proxy.isIgnoredPacket(packet.getClass())) {
+                    if (session.isLogging() && log.isTraceEnabled()) {
+                        log.trace(this.logPrefix + " {}: {}", session.getAddress(), packet);
+                    }
+                    ProxyPlayerSession.this.log(() -> logPrefix + packet.toString());
+                    if (proxy.getConfiguration().isLoggingPackets() &&
+                            proxy.getConfiguration().getLogTo().logToConsole) {
+                        // System.out.println(logPrefix + packet.toString());
+                        try {
+                            System.out.println(logPrefix + jsonSerializer.writeValueAsString(packet));
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
                 ProxyPlayerSession.this.log(() -> logPrefix + packet.toString());
 
@@ -117,6 +140,48 @@ public class ProxyPlayerSession {
                     wrapperHandled = true;
                 } else {
                     unhandled.add(packet);
+                }
+
+                if (packetTesting) {
+                    int packetId = ProxyPass.CODEC.getId(packet.getClass());
+                    ByteBuf buffer = ByteBufAllocator.DEFAULT.ioBuffer();
+                    try {
+                        ProxyPass.CODEC.tryEncode(buffer, packet, session);
+                        BedrockPacket packet2 = ProxyPass.CODEC.tryDecode(buffer, packetId, session);
+                        // buffer.release();
+
+                        // TODO: Separate from main testing?
+                        String jsonData = jsonSerializer.writeValueAsString(packet);
+                        // BedrockPacket packet2 = null;
+                        try {
+                            packet2 = jsonSerializer.readValue(jsonData, packet.getClass());
+                        } catch (JsonMappingException e) {
+                            System.out.println("Error in packet: " + packet.getClass());
+                            System.out.println("Data:            " + jsonData);
+                            e.printStackTrace();
+                        }
+
+                        // Reencode json thingy
+                        /* buffer = ByteBufAllocator.DEFAULT.ioBuffer();
+                        ProxyPass.CODEC.tryEncode(buffer, packet2, session);
+                        packet2 = ProxyPass.CODEC.tryDecode(buffer, packetId, session); */
+
+                        if (!Objects.equals(packet, packet2)) {
+                            // Something went wrong in serialization.
+                            log.warn("Packets instances not equal:\n Original  : {}\nRe-encoded : {}",
+                                    packet, packet2);
+                        } else {
+                            /* log.warn("Equal!!!!!!!!!:\n Original  : {}\nRe-encoded : {}",
+                                    packet.getClass(), packet2.getClass()); */
+                        }
+                    } catch (PacketSerializeException e) {
+                        //ignore
+                    } catch (JsonProcessingException e) {
+                        e.printStackTrace();
+                    } finally {
+                        buffer.release();
+                    }
+                    // System.out.println(ProxyPass.testPacket(packet));
                 }
             }
 
