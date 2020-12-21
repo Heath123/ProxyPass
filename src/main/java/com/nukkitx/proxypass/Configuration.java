@@ -42,6 +42,11 @@ public class Configuration {
     // Whether to avoid creating files and folders
     private boolean avoidingFileCreation = false;
 
+    // For pakkit, not exposed in config.yml
+    // The MOTD to use
+    private String motd = "ProxyPass";
+    private String subMotd = "https://github.com/NukkitX/ProxyPass";
+
     @JsonProperty("ignored-packets")
     private Set<String> ignoredPackets = Collections.emptySet();
 

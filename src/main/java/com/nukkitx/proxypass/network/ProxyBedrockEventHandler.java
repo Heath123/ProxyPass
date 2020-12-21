@@ -35,6 +35,8 @@ public class ProxyBedrockEventHandler implements BedrockServerEventHandler {
         int port = this.proxy.getProxyAddress().getPort();
         ADVERTISEMENT.setIpv4Port(port);
         ADVERTISEMENT.setIpv6Port(port);
+        ADVERTISEMENT.setMotd(proxy.getConfiguration().getMotd());
+        ADVERTISEMENT.setSubMotd(proxy.getConfiguration().getSubMotd());
     }
 
     @Override

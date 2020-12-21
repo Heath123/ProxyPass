@@ -26,10 +26,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.nukkitx.math.vector.Vector2f;
 import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.math.vector.Vector3i;
-import com.nukkitx.nbt.NBTInputStream;
-import com.nukkitx.nbt.NBTOutputStream;
-import com.nukkitx.nbt.NbtMap;
-import com.nukkitx.nbt.NbtUtils;
+import com.nukkitx.nbt.*;
 import com.nukkitx.protocol.bedrock.*;
 import com.nukkitx.protocol.bedrock.data.AttributeData;
 import com.nukkitx.protocol.bedrock.data.GameRuleData;
@@ -37,6 +34,7 @@ import com.nukkitx.protocol.bedrock.data.entity.EntityFlag;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
 import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
 import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
+import com.nukkitx.protocol.bedrock.data.skin.*;
 import com.nukkitx.protocol.bedrock.packet.*;
 import com.nukkitx.protocol.bedrock.v291.serializer.ResourcePacksInfoSerializer_v291;
 import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
@@ -105,54 +103,6 @@ public class ProxyPass {
     private Path baseDir;
     private Path sessionsDir;
     private Path dataDir;
-
-    public static String marshall(Object packet){
-        StringWriter writer = new StringWriter();
-        JAXBContext context;
-        try {
-            context = JAXBContext.newInstance(packet.getClass());
-            Marshaller m = context.createMarshaller();
-
-            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            JAXBElement rootElement = new JAXBElement(new QName(packet.getClass().getSimpleName()), packet.getClass(), packet);
-            m.marshal(rootElement, writer);
-            return writer.toString();
-        } catch (JAXBException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public static Object unMarshall(String input, Class type){
-        JAXBContext context;
-        try {
-            context = JAXBContext.newInstance(type);
-            Unmarshaller m = context.createUnmarshaller();
-            StreamSource source = new StreamSource(new StringReader(input));
-            return m.unmarshal(source, type).getValue();
-        } catch (JAXBException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public static boolean testPacket(BedrockPacket packet) {
-        /* String text = marshall(packet);
-        BedrockPacket reserialized = (BedrockPacket) unMarshall(text, packet.getClass());
-
-        boolean isEqual = packet.equals(reserialized);
-
-        if (!isEqual) {
-            System.out.println("--------------------------------------------");
-            System.out.println("Packets not equal!");
-            System.out.println(packet);
-            System.out.println(reserialized);
-        }
-
-        return isEqual; */
-
-        return false;
-    }
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     abstract class Vector3iMixin {
@@ -296,6 +246,28 @@ public class ProxyPass {
         System.out.println(test2);
         System.out.println(test2.equals(test)); */
 
+        /* SerializedSkin test = SerializedSkin.of("test", "{\"geometry\":{\"default\":\"test\"}}", ImageData.of(1, 1, new byte[]{1, 1, 1}),
+                new ArrayList<AnimationData>(), ImageData.of(1, 1, new byte[]{1, 1, 1}), "test3",
+                "test4", true, true, true,
+                "test5", "test6", "test7", "test8",
+                new ArrayList<PersonaPieceData>(), new ArrayList<PersonaPieceTintData>());
+        System.out.println(test);
+        String jsonData = ProxyPlayerSession.jsonSerializer.writeValueAsString(test);
+        System.out.println(jsonData);
+
+        SerializedSkin test2 = ProxyPlayerSession.jsonSerializer.readValue(jsonData, SerializedSkin.class);
+        System.out.println(test2);
+        System.out.println(test2.equals(test)); */
+
+        /* NbtList test = new NbtList(NbtType.FLOAT, 1f, 2f, 3f);
+        System.out.println(test);
+        String jsonData = ProxyPlayerSession.jsonSerializer.writeValueAsString(test);
+        System.out.println(jsonData);
+
+        NbtList test2 = ProxyPlayerSession.jsonSerializer.readValue(jsonData, NbtList.class);
+        System.out.println(test2);
+        System.out.println(test2.equals(test)); */
+
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
         ProxyPass proxy = new ProxyPass();
         try {
@@ -306,18 +278,21 @@ public class ProxyPass {
     }
 
     public static void startFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
-                                     int maxClients, boolean usePacketQueue) {
+                                     int maxClients, boolean usePacketQueue, boolean avoidFileCreation, String motd,
+                                     String subMotd) {
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
         ProxyPass proxy = new ProxyPass();
         try {
-            proxy.bootFromArgs(proxyHost, proxyPort, destinationHost, destinationPort, maxClients, usePacketQueue);
+            proxy.bootFromArgs(proxyHost, proxyPort, destinationHost, destinationPort, maxClients, usePacketQueue,
+                    avoidFileCreation, motd, subMotd);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public void bootFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
-                             int maxClients, boolean usePacketQueue) throws IOException  {
+                             int maxClients, boolean usePacketQueue, boolean avoidFileCreation, String motd,
+                             String subMotd) throws IOException  {
         configuration = new Configuration();
 
         Configuration.Address proxyAddress = new Configuration.Address();
@@ -332,6 +307,9 @@ public class ProxyPass {
 
         configuration.setMaxClients(maxClients);
         configuration.setUsingPacketQueue(usePacketQueue);
+        configuration.setAvoidingFileCreation(avoidFileCreation);
+        configuration.setMotd(motd);
+        configuration.setSubMotd(subMotd);
 
         actualBoot(configuration);
     }
