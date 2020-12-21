@@ -54,16 +54,28 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
     }
 
     public boolean handle(AvailableEntityIdentifiersPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         proxy.saveNBT("entity_identifiers", packet.getIdentifiers());
         return false;
     }
 
     public boolean handle(BiomeDefinitionListPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         proxy.saveNBT("biome_definitions", packet.getDefinitions());
         return false;
     }
 
     public boolean handle(StartGamePacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         List<DataEntry> itemData = new ArrayList<>();
 
         for (StartGamePacket.ItemEntry entry : packet.getItemEntries()) {
@@ -76,6 +88,10 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
 
     @Override
     public boolean handle(CraftingDataPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         RecipeUtils.writeRecipes(packet, this.proxy);
 
         return false;
@@ -115,6 +131,10 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
 
     @Override
     public boolean handle(CreativeContentPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         dumpCreativeItems(packet.getContents());
         return false;
     }
@@ -122,6 +142,10 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
     // Pre 1.16 method of Creative Items
     @Override
     public boolean handle(InventoryContentPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         if (packet.getContainerId() == ContainerId.CREATIVE) {
             dumpCreativeItems(packet.getContents().toArray(new ItemData[0]));
         }
