@@ -2,6 +2,7 @@ package com.nukkitx.proxypass;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.io.BufferedReader;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 @Getter
+@Setter
 @ToString
 public class Configuration {
 
@@ -24,6 +26,18 @@ public class Configuration {
     private boolean passingThrough = true;
     @JsonProperty("log-packets")
     private boolean loggingPackets = false;
+
+    @JsonProperty("max-clients")
+    private int maxClients = 0;
+    @JsonProperty("log-to")
+    private LogTo logTo = LogTo.FILE;
+
+    // For pakkit, not exposed in config.yml
+    // Whether to use a global, static packet queue from monitoring packets from other programs
+    private boolean usingPacketQueue = false;
+
+    @JsonProperty("ignored-packets")
+    private Set<String> ignoredPackets = Collections.emptySet();
 
     public static Configuration load(Path path) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(path)) {
@@ -42,6 +56,7 @@ public class Configuration {
     }
 
     @Getter
+    @Setter
     @ToString
     public static class Address {
         private String host;
