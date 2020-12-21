@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.nukkitx.math.vector.Vector2f;
 import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.math.vector.Vector3i;
+import com.nukkitx.nbt.NbtList;
 import com.nukkitx.network.util.DisconnectReason;
 import com.nukkitx.protocol.bedrock.BedrockClientSession;
 import com.nukkitx.protocol.bedrock.BedrockPacket;
@@ -29,14 +30,14 @@ import com.nukkitx.protocol.bedrock.data.GameRuleData;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
 import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
 import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
+import com.nukkitx.protocol.bedrock.data.skin.ImageData;
+import com.nukkitx.protocol.bedrock.data.skin.SerializedSkin;
 import com.nukkitx.protocol.bedrock.exception.PacketSerializeException;
 import com.nukkitx.protocol.bedrock.handler.BatchHandler;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.PlayerListPacket;
-import com.nukkitx.protocol.bedrock.packet.SetTimePacket;
-import com.nukkitx.protocol.bedrock.packet.SetTitlePacket;
+import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
-import com.nukkitx.proxypass.CustomTypeIdResolver;
 import com.nukkitx.proxypass.JsonPacketData;
 import com.nukkitx.proxypass.ProxyPass;
 import io.netty.buffer.ByteBuf;
@@ -131,11 +132,14 @@ public class ProxyPlayerSession {
         module.addDeserializer(LongList.class, new LongListDeserializer());
         module.addDeserializer(InventoryActionData.class, new InventoryActionDataSerializer());
         module.addDeserializer(PlayerListPacket.Entry.class, new PlayerListPacket$EntryDeserializer());
-        // TODO: SerializedSkin
-        // TODO: StartGamePacket$ItemEntry
+        module.addDeserializer(SerializedSkin.class, new SerializedSkinDeserializer());
+        module.addDeserializer(ImageData.class, new ImageDataDeserializer());
+        module.addDeserializer(StartGamePacket.ItemEntry.class, new StartGamePacket$ItemEntryDeserializer());
+        module.addDeserializer(NbtList.class, new NbtListDeserializer());
 
         // https://www.baeldung.com/jackson-custom-serialization
         module.addSerializer(EntityFlags.class, new EntityFlagsSerializer());
+        module.addSerializer(NbtList.class, new NbtListSerializer());
 
         jsonSerializer.registerModule(module);
         // TODO: Only ignore some like packetType
