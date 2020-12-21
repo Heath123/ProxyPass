@@ -19,6 +19,9 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.nukkitx.math.vector.Vector2f;
 import com.nukkitx.math.vector.Vector3f;
@@ -34,11 +37,9 @@ import com.nukkitx.protocol.bedrock.data.entity.EntityFlag;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
 import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
 import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
-import com.nukkitx.protocol.bedrock.packet.AddEntityPacket;
-import com.nukkitx.protocol.bedrock.packet.LevelChunkPacket;
-import com.nukkitx.protocol.bedrock.packet.PlayerListPacket;
+import com.nukkitx.protocol.bedrock.packet.*;
+import com.nukkitx.protocol.bedrock.v291.serializer.ResourcePacksInfoSerializer_v291;
 import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
-import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.v407.Bedrock_v407;
 import com.nukkitx.protocol.bedrock.v408.Bedrock_v408;
 import com.nukkitx.proxypass.deserializers.*;
@@ -59,10 +60,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -70,6 +68,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Log4j2
 @Getter
 public class ProxyPass {
+    // Not an actual Queue because it's emptied all at once
+    // Used for pakkit
+    public static ArrayList<JsonPacketData> packetQueue = new ArrayList<>();
+
     public static final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     public static final YAMLMapper YAML_MAPPER = (YAMLMapper) new YAMLMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     public static final String MINECRAFT_VERSION;
@@ -168,6 +170,7 @@ public class ProxyPass {
     // Vector3i test = new Vector3i();
 
     public static void main(String[] args) throws IOException {
+        /*
         // String serializedObject = "";
         // BedrockPacket packet = new StartGamePacket();
         // System.out.println(testPacket(packet));
@@ -192,7 +195,7 @@ public class ProxyPass {
             .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
             .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
             .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
-            .withCreatorVisibility(JsonAutoDetect.Visibility.NONE)); */
+            .withCreatorVisibility(JsonAutoDetect.Visibility.NONE)); */ /*
 
         SimpleModule module = new SimpleModule();
         // https://www.baeldung.com/jackson-deserialization
@@ -244,6 +247,7 @@ public class ProxyPass {
         // System.out.println(ProxyPlayerSession.jsonSerializer.readValue("{\"id\":0,\"damage\":0,\"count\":0,\"tag\":null,\"canPlace\":[],\"canBreak\":[],\"blockingTicks\":0,\"netId\":0,\"valid\":false,\"null\":true}", ItemData.class));
         // {"name":"minecraft:health","minimum":0.0,"maximum":20.0,"value":20.0,"defaultValue":20.0}
         // System.out.println(ProxyPlayerSession.jsonSerializer.readValue("{\"name\":\"minecraft:health\",\"minimum\":0.0,\"maximum\":20.0,\"value\":20.0,\"defaultValue\":20.0}", AttributeData.class));
+        /*
         EntityFlags testFlags = new EntityFlags();
 
         testFlags.setFlag(EntityFlag.ADMIRING, true);
@@ -269,12 +273,28 @@ public class ProxyPass {
         //         "\"metadata\":{\"FLAGS\":[\"INVISIBLE\",\"HAS_COLLISION\",\"HAS_GRAVITY\"]}" +
         //         ",\"entityLinks\":[],\"uniqueEntityId\":-21474835947,\"runtimeEntityId\":1294,\"identifier\":\"minecraft:arrow\",\"entityType\":0,\"position\":{\"x\":42.164177,\"y\":69.0,\"z\":7.9501715,\"minAxis\":2,\"maxAxis\":1,\"floorZ\":7,\"floorX\":42,\"floorY\":69},\"motion\":{\"x\":0.0,\"y\":0.0,\"z\":0.0,\"minAxis\":2,\"maxAxis\":0,\"floorZ\":0,\"floorX\":0,\"floorY\":0},\"rotation\":{\"x\":-64.6875,\"y\":15.46875,\"z\":0.0,\"minAxis\":0,\"maxAxis\":1,\"floorZ\":0,\"floorX\":-65,\"floorY\":15},\"packetType\":\"ADD_ENTITY\"}", AddEntityPacket.class));
 
+        /*
         AddEntityPacket test = new AddEntityPacket();
         test.getMetadata().putFlags(testFlags);
         String jsonData = ProxyPlayerSession.jsonSerializer.writeValueAsString(test);
         System.out.println(jsonData);
 
-        System.out.println(ProxyPlayerSession.jsonSerializer.readValue(jsonData, AddEntityPacket.class));
+        System.out.println(ProxyPlayerSession.jsonSerializer.readValue(jsonData, AddEntityPacket.class)); */
+
+        /* ClientCacheMissResponsePacket test = new ClientCacheMissResponsePacket();
+        String jsonData = ProxyPlayerSession.jsonSerializer.writeValueAsString(test);
+        System.out.println(jsonData);
+
+        ClientCacheMissResponsePacket test2 = ProxyPlayerSession.jsonSerializer.readValue(jsonData, ClientCacheMissResponsePacket.class);
+        System.out.println(test2.equals(test)); */
+
+        /* Vector3i test = Vector3i.from(5, 6, 7);
+        String jsonData = ProxyPlayerSession.jsonSerializer.writeValueAsString(test);
+        System.out.println(jsonData);
+
+        Vector3f test2 = ProxyPlayerSession.jsonSerializer.readValue(jsonData, Vector3f.class);
+        System.out.println(test2);
+        System.out.println(test2.equals(test)); */
 
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
         ProxyPass proxy = new ProxyPass();
@@ -285,6 +305,37 @@ public class ProxyPass {
         }
     }
 
+    public static void startFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
+                                     int maxClients, boolean usePacketQueue) {
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+        ProxyPass proxy = new ProxyPass();
+        try {
+            proxy.bootFromArgs(proxyHost, proxyPort, destinationHost, destinationPort, maxClients, usePacketQueue);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void bootFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
+                             int maxClients, boolean usePacketQueue) throws IOException  {
+        configuration = new Configuration();
+
+        Configuration.Address proxyAddress = new Configuration.Address();
+        proxyAddress.setHost(proxyHost);
+        proxyAddress.setPort(proxyPort);
+        configuration.setProxy(proxyAddress);
+
+        Configuration.Address destinationAddress = new Configuration.Address();
+        destinationAddress.setHost(destinationHost);
+        destinationAddress.setPort(destinationPort);
+        configuration.setDestination(destinationAddress);
+
+        configuration.setMaxClients(maxClients);
+        configuration.setUsingPacketQueue(usePacketQueue);
+
+        actualBoot(configuration);
+    }
+
     public void boot() throws IOException {
         log.info("Loading configuration...");
         Path configPath = Paths.get(".").resolve("config.yml");
@@ -293,6 +344,13 @@ public class ProxyPass {
         }
 
         configuration = Configuration.load(configPath);
+
+        actualBoot(configuration);
+    }
+
+    public void actualBoot(Configuration configuration) throws IOException {
+        // To shut down from a static content
+        instance = this;
 
         proxyAddress = configuration.getProxy().getAddress();
         targetAddress = configuration.getDestination().getAddress();
@@ -344,6 +402,13 @@ public class ProxyPass {
         // Shutdown
         this.clients.forEach(BedrockClient::close);
         this.bedrockServer.close();
+    }
+
+    // To shut down from a static content
+    private static ProxyPass instance;
+
+    public static void shutdownStatic() {
+        instance.shutdown();
     }
 
     public void shutdown() {

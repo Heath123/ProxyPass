@@ -3,6 +3,7 @@ package com.nukkitx.proxypass;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nukkitx.proxypass.network.bedrock.util.LogTo;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.io.BufferedReader;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.Set;
 
 @Getter
+@Setter
 @ToString
 public class Configuration {
 
@@ -31,6 +33,10 @@ public class Configuration {
     private int maxClients = 0;
     @JsonProperty("log-to")
     private LogTo logTo = LogTo.FILE;
+
+    // For pakkit, not exposed in config.yml
+    // Whether to use a global, static packet queue from monitoring packets from other programs
+    private boolean usingPacketQueue = false;
 
     @JsonProperty("ignored-packets")
     private Set<String> ignoredPackets = Collections.emptySet();
@@ -52,6 +58,7 @@ public class Configuration {
     }
 
     @Getter
+    @Setter
     @ToString
     public static class Address {
         private String host;
