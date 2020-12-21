@@ -55,16 +55,28 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
     }
 
     public boolean handle(AvailableEntityIdentifiersPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         proxy.saveNBT("entity_identifiers", packet.getTag());
         return false;
     }
 
     public boolean handle(BiomeDefinitionListPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         proxy.saveNBT("biome_definitions", packet.getTag());
         return false;
     }
 
     public boolean handle(StartGamePacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         Map<String, Integer> legacyBlocks = new HashMap<>();
         for (CompoundTag entry : packet.getBlockPalette().getValue()) {
             legacyBlocks.putIfAbsent(entry.getAsCompound("block").getAsString("name"), (int) entry.getAsShort("id"));
@@ -94,6 +106,10 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
 
     @Override
     public boolean handle(CraftingDataPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
         RecipeUtils.writeRecipes(packet, this.proxy);
 
         return false;
@@ -127,10 +143,31 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
                 }
                 entries.add(new CreativeItemEntry(id, damage, tagData));
             }
-
             CreativeItems items = new CreativeItems(entries);
 
             proxy.saveJson("creative_items.json", items);
+        }
+    }
+
+    @Override
+    public boolean handle(CreativeContentPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
+        dumpCreativeItems(packet.getContents());
+        return false;
+    }
+
+    // Pre 1.16 method of Creative Items
+    @Override
+    public boolean handle(InventoryContentPacket packet) {
+        if (proxy.getConfiguration().isAvoidingFileCreation()) {
+            return false;
+        }
+
+        if (packet.getContainerId() == ContainerId.CREATIVE) {
+            dumpCreativeItems(packet.getContents().toArray(new ItemData[0]));
         }
         return false;
     }

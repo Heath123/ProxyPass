@@ -36,6 +36,10 @@ public class Configuration {
     // Whether to use a global, static packet queue from monitoring packets from other programs
     private boolean usingPacketQueue = false;
 
+    // For pakkit, not exposed in config.yml
+    // Whether to avoid creating files and folders
+    private boolean avoidingFileCreation = false;
+
     @JsonProperty("ignored-packets")
     private Set<String> ignoredPackets = Collections.emptySet();
 
