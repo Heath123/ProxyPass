@@ -2,11 +2,9 @@ package com.nukkitx.proxypass.deserializers;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.nukkitx.protocol.bedrock.data.GameRuleData;
-import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
 import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 
 import java.io.IOException;
@@ -24,7 +22,9 @@ public class GameRuleDataDeserializer extends StdDeserializer<GameRuleData> {
     @Override
     public GameRuleData deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
-        JsonNode node = jp.getCodec().readTree(jp);
+
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         String name = node.get("name").textValue();
         Object value = ProxyPlayerSession.jsonSerializer.readValue(node.get("value").traverse(), Object.class);
 

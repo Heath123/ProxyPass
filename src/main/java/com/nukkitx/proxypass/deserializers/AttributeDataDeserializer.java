@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.nukkitx.protocol.bedrock.data.AttributeData;
+import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 
 import java.io.IOException;
 
@@ -21,8 +22,9 @@ public class AttributeDataDeserializer extends StdDeserializer<AttributeData> {
     @Override
     public AttributeData deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
-        // {"name":"minecraft:health","minimum":0.0,"maximum":20.0,"value":20.0,"defaultValue":20.0}
-        JsonNode node = jp.getCodec().readTree(jp);
+
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         String name = node.get("name").textValue();
         float minimum = node.get("minimum").floatValue();
         float maximum = node.get("maximum").floatValue();

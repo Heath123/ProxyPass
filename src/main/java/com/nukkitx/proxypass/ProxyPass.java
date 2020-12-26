@@ -76,9 +76,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Log4j2
 @Getter
 public class ProxyPass {
+    // TODO: remove
     // Not an actual Queue because it's emptied all at once
     // Used for pakkit
-    public static ArrayList<JsonPacketData> packetQueue = new ArrayList<>();
+    // public static ArrayList<JsonPacketData> packetQueue = new ArrayList<>();
 
     public static final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     public static final YAMLMapper YAML_MAPPER = (YAMLMapper) new YAMLMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -287,12 +288,12 @@ public class ProxyPass {
 
     public static void startFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
                                      int maxClients, boolean usePacketQueue, boolean avoidFileCreation, String motd,
-                                     String subMotd) {
+                                     String subMotd, PacketCallback callback) {
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
         ProxyPass proxy = new ProxyPass();
         try {
             proxy.bootFromArgs(proxyHost, proxyPort, destinationHost, destinationPort, maxClients, usePacketQueue,
-                    avoidFileCreation, motd, subMotd);
+                    avoidFileCreation, motd, subMotd, callback);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -300,7 +301,7 @@ public class ProxyPass {
 
     public void bootFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
                              int maxClients, boolean usePacketQueue, boolean avoidFileCreation, String motd,
-                             String subMotd) throws IOException  {
+                             String subMotd, PacketCallback callback) throws IOException  {
         configuration = new Configuration();
 
         Configuration.Address proxyAddress = new Configuration.Address();
@@ -316,6 +317,7 @@ public class ProxyPass {
         configuration.setMaxClients(maxClients);
         configuration.setUsingPacketQueue(usePacketQueue);
         configuration.setAvoidingFileCreation(avoidFileCreation);
+        configuration.setCallback(callback);
         configuration.setMotd(motd);
         configuration.setSubMotd(subMotd);
 
@@ -344,8 +346,10 @@ public class ProxyPass {
         baseDir = Paths.get(".").toAbsolutePath();
         sessionsDir = baseDir.resolve("sessions");
         dataDir = baseDir.resolve("data");
-        Files.createDirectories(sessionsDir);
-        Files.createDirectories(dataDir);
+        if (!configuration.isAvoidingFileCreation()) {
+            Files.createDirectories(sessionsDir);
+            Files.createDirectories(dataDir);
+        }
 
         log.info("Loading server...");
         this.bedrockServer = new BedrockServer(this.proxyAddress);
@@ -375,7 +379,6 @@ public class ProxyPass {
             }
 
         }
-
         // Shutdown
         this.clients.forEach(BedrockClient::close);
         this.bedrockServer.close();

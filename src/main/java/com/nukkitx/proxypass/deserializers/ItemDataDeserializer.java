@@ -24,7 +24,8 @@ public class ItemDataDeserializer extends StdDeserializer<ItemData> {
     public ItemData deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
 
-        JsonNode node = jp.getCodec().readTree(jp);
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         int netId = (Integer) node.get("netId").numberValue();
         int id = (Integer) node.get("id").numberValue();
         short damage = node.get("damage").shortValue();

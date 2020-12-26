@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlag;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
+import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
+
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -22,8 +24,9 @@ public class EntityFlagsDeserializer extends StdDeserializer<EntityFlags> {
     @Override
     public EntityFlags deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
-        // {"name":"minecraft:health","minimum":0.0,"maximum":20.0,"value":20.0,"defaultValue":20.0}
-        JsonNode node = jp.getCodec().readTree(jp);
+
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         EntityFlags flags = new EntityFlags();
 
         for (Iterator<JsonNode> i = node.elements(); i.hasNext();) {

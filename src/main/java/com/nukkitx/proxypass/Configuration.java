@@ -34,11 +34,16 @@ public class Configuration {
 
     // For pakkit, not exposed in config.yml
     // Whether to use a global, static packet queue from monitoring packets from other programs
+    // TODO: change to callback
     private boolean usingPacketQueue = false;
 
     // For pakkit, not exposed in config.yml
     // Whether to avoid creating files and folders
     private boolean avoidingFileCreation = false;
+
+    // For pakkit, not exposed in config.yml
+    // Callback for packets
+    private PacketCallback callback;
 
     // For pakkit, not exposed in config.yml
     // The MOTD to use
