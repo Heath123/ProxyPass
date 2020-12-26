@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.nukkitx.nbt.NbtMap;
 import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
 import com.nukkitx.protocol.bedrock.data.inventory.InventorySource;
 import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
@@ -12,13 +11,13 @@ import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 
 import java.io.IOException;
 
-public class InventoryActionDataSerializer  extends StdDeserializer<InventoryActionData> {
+public class InventoryActionDataDeserializer extends StdDeserializer<InventoryActionData> {
 
-    public InventoryActionDataSerializer() {
+    public InventoryActionDataDeserializer() {
         this(null);
     }
 
-    public InventoryActionDataSerializer(Class<?> vc) {
+    public InventoryActionDataDeserializer(Class<?> vc) {
         super(vc);
     }
 
@@ -26,7 +25,7 @@ public class InventoryActionDataSerializer  extends StdDeserializer<InventoryAct
     public InventoryActionData deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
 
-        JsonNode node = jp.getCodec().readTree(jp);
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
 
         InventorySource source = ProxyPlayerSession.jsonSerializer.readValue(node.get("source").traverse(), InventorySource.class);
         int slot = (Integer) node.get("slot").numberValue();

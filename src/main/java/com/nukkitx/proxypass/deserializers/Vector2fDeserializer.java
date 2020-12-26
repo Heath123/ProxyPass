@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.nukkitx.math.vector.Vector2f;
+import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 
 import java.io.IOException;
 
@@ -21,7 +22,9 @@ public class Vector2fDeserializer extends StdDeserializer<Vector2f> {
     @Override
     public Vector2f deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
-        JsonNode node = jp.getCodec().readTree(jp);
+
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         float x = node.get("x").floatValue();
         float y = node.get("y").floatValue();
 

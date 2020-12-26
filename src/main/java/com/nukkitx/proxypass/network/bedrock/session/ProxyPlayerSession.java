@@ -15,17 +15,19 @@ import com.nukkitx.math.vector.Vector2f;
 import com.nukkitx.math.vector.Vector3f;
 import com.nukkitx.math.vector.Vector3i;
 import com.nukkitx.nbt.NbtList;
+import com.nukkitx.nbt.NbtMap;
 import com.nukkitx.network.util.DisconnectReason;
-import com.nukkitx.protocol.bedrock.BedrockClientSession;
-import com.nukkitx.protocol.bedrock.BedrockPacket;
-import com.nukkitx.protocol.bedrock.BedrockServerSession;
-import com.nukkitx.protocol.bedrock.BedrockSession;
+import com.nukkitx.protocol.bedrock.*;
 import com.nukkitx.protocol.bedrock.data.AttributeData;
 import com.nukkitx.protocol.bedrock.data.GameRuleData;
+import com.nukkitx.protocol.bedrock.data.command.CommandData;
+import com.nukkitx.protocol.bedrock.data.command.CommandEnumConstraintData;
+import com.nukkitx.protocol.bedrock.data.command.CommandEnumData;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
-import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
-import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
+import com.nukkitx.protocol.bedrock.data.inventory.*;
+import com.nukkitx.protocol.bedrock.data.skin.AnimationData;
 import com.nukkitx.protocol.bedrock.data.skin.ImageData;
+import com.nukkitx.protocol.bedrock.data.skin.PersonaPieceData;
 import com.nukkitx.protocol.bedrock.data.skin.SerializedSkin;
 import com.nukkitx.protocol.bedrock.exception.PacketSerializeException;
 import com.nukkitx.protocol.bedrock.handler.BatchHandler;
@@ -33,6 +35,8 @@ import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.PlayerListPacket;
 import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
+import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.util.Int2ObjectBiMap;
 import com.nukkitx.proxypass.JsonPacketData;
 import com.nukkitx.proxypass.ProxyPass;
 import com.nukkitx.proxypass.deserializers.*;
@@ -41,10 +45,13 @@ import io.netty.buffer.ByteBufAllocator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -76,6 +83,9 @@ public class ProxyPlayerSession {
     // TODO: Set to null when not connected
     private static ProxyPlayerSession aSession;
 
+    @Setter
+    public static boolean dontSendPackets = false;
+
     /**
      * Should only be used when one client is connected
      */
@@ -88,6 +98,31 @@ public class ProxyPlayerSession {
         } else {
             aSession.upstream.sendPacketImmediately(packet);
         }
+    }
+
+    /**
+     * Should only be used when one client is connected
+     * @return TODO
+     */
+    public static String getIdBiMapStatic() throws NoSuchFieldException, IllegalAccessException, JsonProcessingException {
+        Field biMapField = BedrockPacketCodec.class.getDeclaredField("idBiMap");
+        biMapField.setAccessible(true);
+        // TODO: dynamic
+        BedrockPacketCodec codec = Bedrock_v422.V422_CODEC;
+        Int2ObjectBiMap<Class<? extends BedrockPacket>> idBiMap = (Int2ObjectBiMap<Class<? extends BedrockPacket>>) biMapField.get(codec);
+        // Convert
+        Map<Integer, String> idTypeMap = new HashMap<>();
+        idBiMap.forEach((Class<? extends BedrockPacket> value, int key) -> {
+            try {
+                idTypeMap.put(key,
+                        value.getDeclaredConstructor().newInstance()
+                                .getPacketType().toString()
+                );
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+        });
+        return jsonSerializer.writeValueAsString(idTypeMap);
     }
 
     @JsonFilter("VectorFilter")
@@ -122,12 +157,21 @@ public class ProxyPlayerSession {
         module.addDeserializer(EntityFlags.class, new EntityFlagsDeserializer());
         module.addDeserializer(GameRuleData.class, new GameRuleDataDeserializer());
         module.addDeserializer(LongList.class, new LongListDeserializer());
-        module.addDeserializer(InventoryActionData.class, new InventoryActionDataSerializer());
+        module.addDeserializer(InventoryActionData.class, new InventoryActionDataDeserializer());
         module.addDeserializer(PlayerListPacket.Entry.class, new PlayerListPacket$EntryDeserializer());
         module.addDeserializer(SerializedSkin.class, new SerializedSkinDeserializer());
         module.addDeserializer(ImageData.class, new ImageDataDeserializer());
         module.addDeserializer(StartGamePacket.ItemEntry.class, new StartGamePacket$ItemEntryDeserializer());
         module.addDeserializer(NbtList.class, new NbtListDeserializer());
+        module.addDeserializer(InventorySource.class, new InventorySourceDeserializer());
+        module.addDeserializer(CraftingData.class, new CraftingDataDeserializer());
+        module.addDeserializer(NbtMap.class, new NbtMapDeserializer());
+        module.addDeserializer(PotionMixData.class, new PotionMixDataDeserializer());
+        module.addDeserializer(ContainerMixData.class, new ContainerMixDataDeserializer());
+        module.addDeserializer(AnimationData.class, new AnimationDataDeserializer());
+        module.addDeserializer(CommandData.class, new CommandDataDeserializer());
+        module.addDeserializer(PersonaPieceData.class, new PersonaPieceDataDeserializer());
+        module.addDeserializer(CommandEnumData.class, new CommandEnumDataDeserializer());
 
         // https://www.baeldung.com/jackson-custom-serialization
         module.addSerializer(EntityFlags.class, new EntityFlagsSerializer());
@@ -156,9 +200,35 @@ public class ProxyPlayerSession {
             }
         }
         this.upstream.addDisconnectHandler(reason -> {
+            // System.out.println("Disconnect!!!");
             if (reason != DisconnectReason.DISCONNECTED) {
                 this.downstream.disconnect();
             }
+
+            if (proxy.getConfiguration().isUsingPacketQueue()) {
+                proxy.getConfiguration().getCallback().handlePacket(new JsonPacketData(
+                        null,
+                        null,
+                        0,
+                        null,
+                        null,
+                        null,
+                        false,
+                        true,
+                        "disconnect",
+                        ""));
+            }
+
+            /*
+
+            // Relaunch (hack to fix rejoining)
+            proxy.shutdown();
+            try {
+                proxy.actualBoot(proxy.getConfiguration());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+             */
         });
         if (proxy.getConfiguration().isLoggingPackets()) {
             executor.scheduleAtFixedRate(this::flushLogBuffer, 5, 5, TimeUnit.SECONDS);
@@ -211,6 +281,16 @@ public class ProxyPlayerSession {
             boolean batchHandled = false;
             List<BedrockPacket> unhandled = new ArrayList<>();
             for (BedrockPacket packet : packets) {
+                boolean thisPacketHandled = false;
+                BedrockPacketHandler handler = session.getPacketHandler();
+
+                if (handler != null && packet.handle(handler)) {
+                    batchHandled = true;
+                    thisPacketHandled = true;
+                } else {
+                    unhandled.add(packet);
+                }
+
                 if (!proxy.isIgnoredPacket(packet.getClass())) {
                     if (session.isLogging() && log.isTraceEnabled()) {
                         log.trace(this.logPrefix + " {}: {}", session.getAddress(), packet);
@@ -237,27 +317,23 @@ public class ProxyPlayerSession {
                                 buffer.release();
                             }
 
-                            ProxyPass.packetQueue.add(new JsonPacketData(
+                            proxy.getConfiguration().getCallback().handlePacket(new JsonPacketData(
                                     direction,
                                     jsonSerializer.writeValueAsString(packet),
                                     packet.getPacketId(),
                                     packet.getPacketType(),
                                     packet.getClass().getName(),
-                                    bytes));
+                                    bytes,
+                                    thisPacketHandled,
+                                    false,
+                                    "",
+                                    ""));
 
                         } catch (JsonProcessingException e) {
                             // TODO: Handle (add error to data structure?)
                             e.printStackTrace();
                         }
                     }
-                }
-
-                BedrockPacketHandler handler = session.getPacketHandler();
-
-                if (handler != null && packet.handle(handler)) {
-                    batchHandled = true;
-                } else {
-                    unhandled.add(packet);
                 }
 
                 if (packetTesting) {
@@ -303,11 +379,13 @@ public class ProxyPlayerSession {
                 }
             }
 
-            if (!batchHandled) {
-                compressed.resetReaderIndex();
-                this.session.sendWrapped(compressed, true);
-            } else if (!unhandled.isEmpty()) {
-                this.session.sendWrapped(unhandled, true);
+            if (!dontSendPackets) {
+                if (!batchHandled) {
+                    compressed.resetReaderIndex();
+                    this.session.sendWrapped(compressed, true);
+                } else if (!unhandled.isEmpty()) {
+                    this.session.sendWrapped(unhandled, true);
+                }
             }
         }
     }

@@ -5,15 +5,11 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.nukkitx.nbt.NbtList;
-import com.nukkitx.nbt.NbtMap;
 import com.nukkitx.nbt.NbtType;
-import com.nukkitx.protocol.bedrock.data.entity.EntityFlag;
 import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.util.Collection;
 
 public class NbtListDeserializer extends StdDeserializer<NbtList> {
 
@@ -29,7 +25,8 @@ public class NbtListDeserializer extends StdDeserializer<NbtList> {
     public NbtList deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
 
-        JsonNode node = jp.getCodec().readTree(jp);
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         try {
             NbtType nbtType = (NbtType) NbtType.class.getDeclaredField(node.get("nbtType").textValue()).get(null);
             Object[] data = (Object[]) ProxyPlayerSession.jsonSerializer.readValue(node.get("data").traverse(), Array.newInstance(nbtType.getTagClass(), 0).getClass());

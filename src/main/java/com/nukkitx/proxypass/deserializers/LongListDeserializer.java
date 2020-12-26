@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
@@ -24,7 +25,8 @@ public class LongListDeserializer extends StdDeserializer<LongList> {
     public LongList deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException {
 
-        JsonNode node = jp.getCodec().readTree(jp);
+        JsonNode node = ProxyPlayerSession.jsonSerializer.readTree(jp);
+
         LongList result = new LongArrayList();
 
         for (Iterator<JsonNode> i = node.elements(); i.hasNext();) {
