@@ -2,9 +2,6 @@ package com.nukkitx.proxypass.network.bedrock.util;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.nukkitx.nbt.NbtUtils;
-import com.nukkitx.nbt.stream.NBTOutputStream;
-import com.nukkitx.nbt.tag.CompoundTag;
-import com.nukkitx.protocol.bedrock.data.*;
 import com.nukkitx.protocol.bedrock.packet.CraftingDataPacket;
 import com.nukkitx.proxypass.ProxyPass;
 import lombok.AllArgsConstructor;
@@ -19,6 +16,7 @@ import java.util.*;
 
 @UtilityClass
 public class RecipeUtils {
+    /*
     private static final char[] SHAPE_CHARS = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'};
 
     public static void writeRecipes(CraftingDataPacket packet, ProxyPass proxy) {
@@ -173,4 +171,5 @@ public class RecipeUtils {
         private final List<PotionMixData> potionMixes;
         private final List<ContainerMixData> containerMixes;
     }
+     */
 }

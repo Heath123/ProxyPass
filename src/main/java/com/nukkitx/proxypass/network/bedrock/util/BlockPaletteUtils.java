@@ -1,15 +1,16 @@
 package com.nukkitx.proxypass.network.bedrock.util;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.nukkitx.nbt.TagType;
-import com.nukkitx.nbt.tag.CompoundTag;
 import com.nukkitx.proxypass.ProxyPass;
 import lombok.Value;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class BlockPaletteUtils {
-
+    /*
     public static void convertToJson(ProxyPass proxy, List<CompoundTag> tags) {
 
         List<Entry> palette = new ArrayList<>(tags.size());
@@ -63,4 +64,5 @@ public class BlockPaletteUtils {
         private Object val;
         private int type;
     }
+     */
 }

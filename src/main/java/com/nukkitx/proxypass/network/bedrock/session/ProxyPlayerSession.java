@@ -1,6 +1,7 @@
 package com.nukkitx.proxypass.network.bedrock.session;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -17,20 +18,10 @@ import com.nukkitx.math.vector.Vector3i;
 import com.nukkitx.nbt.NbtList;
 import com.nukkitx.nbt.NbtMap;
 import com.nukkitx.network.util.DisconnectReason;
-import com.nukkitx.protocol.bedrock.BedrockClientSession;
-import com.nukkitx.protocol.bedrock.BedrockPacket;
-import com.nukkitx.protocol.bedrock.BedrockServerSession;
-import com.nukkitx.protocol.bedrock.BedrockSession;
-import com.nukkitx.protocol.bedrock.handler.BatchHandler;
-import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
-import com.nukkitx.protocol.bedrock.packet.NetworkStackLatencyPacket;
-import com.nukkitx.protocol.bedrock.packet.SetEntityDataPacket;
-import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.*;
 import com.nukkitx.protocol.bedrock.data.AttributeData;
 import com.nukkitx.protocol.bedrock.data.GameRuleData;
 import com.nukkitx.protocol.bedrock.data.command.CommandData;
-import com.nukkitx.protocol.bedrock.data.command.CommandEnumConstraintData;
 import com.nukkitx.protocol.bedrock.data.command.CommandEnumData;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
 import com.nukkitx.protocol.bedrock.data.inventory.*;
@@ -48,7 +39,6 @@ import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
 import com.nukkitx.protocol.util.Int2ObjectBiMap;
 import com.nukkitx.proxypass.JsonPacketData;
 import com.nukkitx.proxypass.ProxyPass;
-import io.netty.buffer.ByteBuf;
 import com.nukkitx.proxypass.deserializers.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -57,7 +47,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -289,19 +278,18 @@ public class ProxyPlayerSession {
                 BedrockPacketHandler handler = session.getPacketHandler();
 
                 if (handler != null && packet.handle(handler)) {
-                    batchHandled = true;
-                    thisPacketHandled = true;
+                    wrapperHandled = true;
                 } else {
                     unhandled.add(packet);
                 }
 
-                if (!proxy.isIgnoredPacket(packet.getClass())) {
+                if (/*(!proxy.isIgnoredPacket(packet.getClass()))*/ true) {
                     if (session.isLogging() && log.isTraceEnabled()) {
                         log.trace(this.logPrefix + " {}: {}", session.getAddress(), packet);
                     }
                     ProxyPlayerSession.this.log(() -> logPrefix + packet.toString());
                     if (proxy.getConfiguration().isLoggingPackets() &&
-                            proxy.getConfiguration().getLogTo().logToConsole) {
+                           false /* proxy.getConfiguration().getLogTo().logToConsole */) {
                         System.out.println(logPrefix + packet.toString());
                     }
 
@@ -341,15 +329,7 @@ public class ProxyPlayerSession {
                 }
                 ProxyPlayerSession.this.log(() -> logPrefix + packet.toString());
 
-                BedrockPacketHandler handler = session.getPacketHandler();
-
-                if (handler != null && packet.handle(handler)) {
-                    wrapperHandled = true;
-                } else {
-                    unhandled.add(packet);
-                }
-
-                if (packetTesting) {
+                /* if (packetTesting) {
                     int packetId = ProxyPass.CODEC.getId(packet.getClass());
                     ByteBuf buffer = ByteBufAllocator.DEFAULT.ioBuffer();
                     try {
@@ -371,7 +351,7 @@ public class ProxyPlayerSession {
                         // Reencode json thingy
                         /* buffer = ByteBufAllocator.DEFAULT.ioBuffer();
                         ProxyPass.CODEC.tryEncode(buffer, packet2, session);
-                        packet2 = ProxyPass.CODEC.tryDecode(buffer, packetId, session); */
+                        packet2 = ProxyPass.CODEC.tryDecode(buffer, packetId, session); *//*
 
                         if (!Objects.equals(packet, packet2)) {
                             // Something went wrong in serialization.
@@ -379,7 +359,7 @@ public class ProxyPlayerSession {
                                     packet, packet2);
                         } else {
                             /* log.warn("Equal!!!!!!!!!:\n Original  : {}\nRe-encoded : {}",
-                                    packet.getClass(), packet2.getClass()); */
+                                    packet.getClass(), packet2.getClass()); *//*
                         }
                     } catch (PacketSerializeException e) {
                         //ignore
@@ -389,7 +369,7 @@ public class ProxyPlayerSession {
                         buffer.release();
                     }
                     // System.out.println(ProxyPass.testPacket(packet));
-                }
+                } */
             }
 
             if (!dontSendPackets) {

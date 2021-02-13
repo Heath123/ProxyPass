@@ -2,62 +2,22 @@ package com.nukkitx.proxypass;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.ser.FilterProvider;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.nukkitx.nbt.NBTInputStream;
+import com.nukkitx.nbt.NBTOutputStream;
 import com.nukkitx.nbt.NbtUtils;
-import com.nukkitx.nbt.stream.NBTInputStream;
-import com.nukkitx.nbt.stream.NBTOutputStream;
-import com.nukkitx.nbt.stream.NetworkDataOutputStream;
-import com.nukkitx.nbt.tag.Tag;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
 import com.nukkitx.protocol.bedrock.BedrockServer;
 import com.nukkitx.protocol.bedrock.v388.Bedrock_v388;
 import com.nukkitx.proxypass.network.ProxyBedrockEventHandler;
-import com.nukkitx.math.vector.Vector2f;
-import com.nukkitx.math.vector.Vector3f;
-import com.nukkitx.math.vector.Vector3i;
-import com.nukkitx.nbt.*;
-import com.nukkitx.protocol.bedrock.*;
-import com.nukkitx.protocol.bedrock.data.AttributeData;
-import com.nukkitx.protocol.bedrock.data.GameRuleData;
-import com.nukkitx.protocol.bedrock.data.entity.EntityFlag;
-import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
-import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
-import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
-import com.nukkitx.protocol.bedrock.data.skin.*;
-import com.nukkitx.protocol.bedrock.packet.*;
-import com.nukkitx.protocol.bedrock.v291.serializer.ResourcePacksInfoSerializer_v291;
-import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
-import com.nukkitx.protocol.bedrock.v407.Bedrock_v407;
-import com.nukkitx.protocol.bedrock.v408.Bedrock_v408;
-import com.nukkitx.proxypass.deserializers.*;
-import com.nukkitx.proxypass.network.ProxyBedrockEventHandler;
-import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
-
 import io.netty.util.ResourceLeakDetector;
-import it.unimi.dsi.fastutil.longs.LongList;
-import jakarta.xml.bind.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
@@ -68,7 +28,6 @@ import java.net.InetSocketAddress;
 import java.nio.file.*;
 import java.util.Collections;
 import java.util.Set;
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -396,26 +355,6 @@ public class ProxyPass {
             synchronized (this) {
                 this.notify();
             }
-        }
-    }
-
-    public void saveNBT(String dataName, Tag<?> dataTag) {
-        Path path = dataDir.resolve(dataName + ".dat");
-        try (OutputStream outputStream = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-             NBTOutputStream nbtOutputStream = NbtUtils.createNetworkWriter(outputStream)){
-            nbtOutputStream.write(dataTag);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public Tag<?> loadNBT(String dataName) {
-        Path path = dataDir.resolve(dataName + ".dat");
-        try (InputStream inputStream = Files.newInputStream(path);
-             NBTInputStream nbtInputStream = NbtUtils.createNetworkReader(inputStream)){
-            return nbtInputStream.readTag();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 

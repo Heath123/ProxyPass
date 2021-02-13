@@ -31,14 +31,14 @@ public class ProxyBedrockEventHandler implements BedrockServerEventHandler {
         ADVERTISEMENT.setSubMotd("https://github.com/NukkitX/ProxyPass");
     }
 
-    public ProxyBedrockEventHandler(ProxyPass proxy) {
+    /* public ProxyBedrockEventHandler(ProxyPass proxy) {
         this.proxy = proxy;
         int port = this.proxy.getProxyAddress().getPort();
         ADVERTISEMENT.setIpv4Port(port);
         ADVERTISEMENT.setIpv6Port(port);
         ADVERTISEMENT.setMotd(proxy.getConfiguration().getMotd());
         ADVERTISEMENT.setSubMotd(proxy.getConfiguration().getSubMotd());
-    }
+    } */
 
     @Override
     public boolean onConnectionRequest(InetSocketAddress address) {

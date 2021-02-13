@@ -29,8 +29,6 @@ public class Configuration {
 
     @JsonProperty("max-clients")
     private int maxClients = 0;
-    @JsonProperty("log-to")
-    private LogTo logTo = LogTo.FILE;
 
     // For pakkit, not exposed in config.yml
     // Whether to use a global, static packet queue from monitoring packets from other programs
@@ -49,9 +47,6 @@ public class Configuration {
     // The MOTD to use
     private String motd = "ProxyPass";
     private String subMotd = "https://github.com/NukkitX/ProxyPass";
-
-    @JsonProperty("ignored-packets")
-    private Set<String> ignoredPackets = Collections.emptySet();
 
     public static Configuration load(Path path) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(path)) {

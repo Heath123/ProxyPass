@@ -1,7 +1,6 @@
 package com.nukkitx.proxypass;
 
 import com.nukkitx.protocol.bedrock.BedrockPacketType;
-import io.netty.buffer.ByteBuf;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

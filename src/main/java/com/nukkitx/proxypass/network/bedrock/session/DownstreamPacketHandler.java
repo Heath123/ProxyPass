@@ -3,25 +3,17 @@ package com.nukkitx.proxypass.network.bedrock.session;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nimbusds.jwt.SignedJWT;
-import com.nukkitx.nbt.stream.LittleEndianDataOutputStream;
-import com.nukkitx.nbt.stream.NBTOutputStream;
-import com.nukkitx.nbt.tag.CompoundTag;
-import com.nukkitx.nbt.tag.ListTag;
 import com.nukkitx.protocol.bedrock.BedrockClientSession;
-import com.nukkitx.protocol.bedrock.data.ContainerId;
-import com.nukkitx.protocol.bedrock.data.ItemData;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.*;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
 import com.nukkitx.proxypass.ProxyPass;
-import com.nukkitx.proxypass.network.bedrock.util.BlockPaletteUtils;
 import com.nukkitx.proxypass.network.bedrock.util.RecipeUtils;
-import lombok.*;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import lombok.extern.log4j.Log4j2;
 
 import javax.crypto.SecretKey;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -54,121 +46,10 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
         return true;
     }
 
-    public boolean handle(AvailableEntityIdentifiersPacket packet) {
-        if (proxy.getConfiguration().isAvoidingFileCreation()) {
-            return false;
-        }
-
-        proxy.saveNBT("entity_identifiers", packet.getTag());
-        return false;
-    }
-
-    public boolean handle(BiomeDefinitionListPacket packet) {
-        if (proxy.getConfiguration().isAvoidingFileCreation()) {
-            return false;
-        }
-
-        proxy.saveNBT("biome_definitions", packet.getTag());
-        return false;
-    }
-
-    public boolean handle(StartGamePacket packet) {
-        if (proxy.getConfiguration().isAvoidingFileCreation()) {
-            return false;
-        }
-
-        Map<String, Integer> legacyBlocks = new HashMap<>();
-        for (CompoundTag entry : packet.getBlockPalette().getValue()) {
-            legacyBlocks.putIfAbsent(entry.getAsCompound("block").getAsString("name"), (int) entry.getAsShort("id"));
-        }
-
-        proxy.saveJson("legacy_block_ids.json", sortMap(legacyBlocks));
-        List<CompoundTag> palette = new ArrayList<>(packet.getBlockPalette().getValue());
-        palette.sort(Comparator.comparingInt(value -> value.getAsShort("id")));
-        proxy.saveNBT("runtime_block_states", new ListTag<>("", CompoundTag.class, palette));
-        BlockPaletteUtils.convertToJson(proxy, palette);
-
-        List<DataEntry> itemData = new ArrayList<>();
-        LinkedHashMap<String, Integer> legacyItems = new LinkedHashMap<>();
-
-        for (StartGamePacket.ItemEntry entry : packet.getItemEntries()) {
-            itemData.add(new DataEntry(entry.getIdentifier(), entry.getId()));
-            if (entry.getId() > 255) {
-                legacyItems.putIfAbsent(entry.getIdentifier(), (int) entry.getId());
-            }
-        }
-
-        proxy.saveJson("legacy_item_ids.json", sortMap(legacyItems));
-        proxy.saveJson("runtime_item_states.json", itemData);
-
-        return false;
-    }
-
-    @Override
-    public boolean handle(CraftingDataPacket packet) {
-        if (proxy.getConfiguration().isAvoidingFileCreation()) {
-            return false;
-        }
-
-        RecipeUtils.writeRecipes(packet, this.proxy);
-
-        return false;
-    }
-
     @Override
     public boolean handle(DisconnectPacket packet) {
         this.session.disconnect();
         // Let the client see the reason too.
-        return false;
-    }
-
-    @Override
-    public boolean handle(InventoryContentPacket packet) {
-        if (packet.getContainerId() == ContainerId.CREATIVE) {
-            List<CreativeItemEntry> entries = new ArrayList<>();
-            for (ItemData data : packet.getContents()) {
-                int id = data.getId();
-                Integer damage = data.getDamage() == 0 ? null : (int) data.getDamage();
-
-                CompoundTag tag = data.getTag();
-                String tagData = null;
-                if (tag != null) {
-                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                    try (NBTOutputStream stream = new NBTOutputStream(new LittleEndianDataOutputStream(byteArrayOutputStream))) {
-                        stream.write(tag);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    tagData = Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
-                }
-                entries.add(new CreativeItemEntry(id, damage, tagData));
-            }
-            CreativeItems items = new CreativeItems(entries);
-
-            proxy.saveJson("creative_items.json", items);
-        }
-    }
-
-    @Override
-    public boolean handle(CreativeContentPacket packet) {
-        if (proxy.getConfiguration().isAvoidingFileCreation()) {
-            return false;
-        }
-
-        dumpCreativeItems(packet.getContents());
-        return false;
-    }
-
-    // Pre 1.16 method of Creative Items
-    @Override
-    public boolean handle(InventoryContentPacket packet) {
-        if (proxy.getConfiguration().isAvoidingFileCreation()) {
-            return false;
-        }
-
-        if (packet.getContainerId() == ContainerId.CREATIVE) {
-            dumpCreativeItems(packet.getContents().toArray(new ItemData[0]));
-        }
         return false;
     }
 

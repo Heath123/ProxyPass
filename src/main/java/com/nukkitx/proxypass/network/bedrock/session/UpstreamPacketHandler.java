@@ -9,10 +9,8 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jwt.SignedJWT;
-import com.nukkitx.math.vector.Vector3i;
 import com.nukkitx.protocol.bedrock.BedrockServerSession;
 import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
-import com.nukkitx.protocol.bedrock.packet.CommandRequestPacket;
 import com.nukkitx.protocol.bedrock.packet.LoginPacket;
 import com.nukkitx.protocol.bedrock.packet.PlayStatusPacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
@@ -25,9 +23,7 @@ import lombok.extern.log4j.Log4j2;
 import net.minidev.json.JSONObject;
 
 import java.io.IOException;
-
 import java.security.interfaces.ECPublicKey;
-import java.util.Base64;
 import java.util.UUID;
 
 @Log4j2
@@ -75,9 +71,9 @@ public class UpstreamPacketHandler implements BedrockPacketHandler {
         if (protocolVersion != ProxyPass.PROTOCOL_VERSION) {
             PlayStatusPacket status = new PlayStatusPacket();
             if (protocolVersion > ProxyPass.PROTOCOL_VERSION) {
-                status.setStatus(PlayStatusPacket.Status.FAILED_SERVER);
+                status.setStatus(PlayStatusPacket.Status.LOGIN_FAILED_SERVER_OLD);
             } else {
-                status.setStatus(PlayStatusPacket.Status.FAILED_CLIENT);
+                status.setStatus(PlayStatusPacket.Status.LOGIN_FAILED_CLIENT_OLD);
             }
         }
         session.setPacketCodec(ProxyPass.CODEC);
@@ -171,8 +167,8 @@ public class UpstreamPacketHandler implements BedrockPacketHandler {
             login.setProtocolVersion(ProxyPass.PROTOCOL_VERSION);
 
             downstream.sendPacketImmediately(login);
-            this.session.setBatchedHandler(proxySession.getUpstreamBatchHandler());
-            downstream.setBatchedHandler(proxySession.getDownstreamTailHandler());
+            this.session.setBatchHandler(proxySession.getUpstreamBatchHandler());
+            downstream.setBatchHandler(proxySession.getDownstreamTailHandler());
             downstream.setLogging(true);
             downstream.setPacketHandler(new DownstreamPacketHandler(downstream, proxySession, this.proxy));
 
