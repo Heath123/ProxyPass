@@ -29,6 +29,7 @@ public class SerializedSkinDeserializer extends StdDeserializer<SerializedSkin> 
 
         String skinId = node.get("skinId").textValue();
         String skinResourcePatch = node.get("skinResourcePatch").textValue();
+        String playFabId = node.get("playFabId").textValue();
         ImageData skinData = ProxyPlayerSession.jsonSerializer.readValue(node.get("skinData").traverse(), ImageData.class);
         List<AnimationData> animations = ProxyPlayerSession.jsonSerializer.readValue(node.get("animations").traverse(), new TypeReference<List<AnimationData>>() {});
         ImageData capeData = ProxyPlayerSession.jsonSerializer.readValue(node.get("capeData").traverse(), ImageData.class);
@@ -44,8 +45,8 @@ public class SerializedSkinDeserializer extends StdDeserializer<SerializedSkin> 
         List<PersonaPieceData> personaPieces = ProxyPlayerSession.jsonSerializer.readValue(node.get("personaPieces").traverse(), new TypeReference<List<PersonaPieceData>>() {});
         List<PersonaPieceTintData> tintColors = ProxyPlayerSession.jsonSerializer.readValue(node.get("tintColors").traverse(), new TypeReference<List<PersonaPieceTintData>>() {});
 
-        return SerializedSkin.of(skinId, skinResourcePatch, skinData,
-                animations, capeData, geometryData,
+        return SerializedSkin.of(skinId, skinResourcePatch, playFabId,
+                skinData, animations, capeData, geometryData,
                 animationData, premium, persona, capeOnClassic,
                 capeId, fullSkinId, armSize, skinColor,
                 personaPieces, tintColors);
