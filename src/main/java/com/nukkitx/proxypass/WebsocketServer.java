@@ -2,7 +2,7 @@ package com.nukkitx.proxypass;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.genoa.v425.Genoa_v425;
 import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -33,7 +33,7 @@ public class WebsocketServer extends WebSocketServer {
 
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         try {
-            this.proxy.handleEvent("filteringPackets", ProxyPlayerSession.getIdBiMap(Bedrock_v422.V422_CODEC));
+            this.proxy.handleEvent("filteringPackets", ProxyPlayerSession.getIdBiMap(Genoa_v425.v425_CODEC));
         } catch (NoSuchFieldException|IllegalAccessException|JsonProcessingException e) {
             e.printStackTrace();
         }
