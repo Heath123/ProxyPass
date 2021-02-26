@@ -4,6 +4,7 @@ import com.nukkitx.protocol.bedrock.BedrockPacketType;
 import io.netty.buffer.ByteBuf;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NonNull;
 
 @Data
 @AllArgsConstructor
@@ -14,12 +15,8 @@ public class JsonPacketData {
     public int packetId;
     public BedrockPacketType packetType;
     public String className;
+    @NonNull
     public byte[] bytes;
     // If a custom handler was called that blocked the packet and setting dontSendPackets wouldn't block the sending
     public boolean isHandled;
-
-    // Used for things that aren't actually packets, but events
-    public boolean isEvent;
-    public String eventType;
-    public String eventData;
 }

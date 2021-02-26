@@ -1,9 +1,12 @@
 package com.nukkitx.proxypass.network.bedrock.session;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
@@ -21,7 +24,6 @@ import com.nukkitx.protocol.bedrock.*;
 import com.nukkitx.protocol.bedrock.data.AttributeData;
 import com.nukkitx.protocol.bedrock.data.GameRuleData;
 import com.nukkitx.protocol.bedrock.data.command.CommandData;
-import com.nukkitx.protocol.bedrock.data.command.CommandEnumConstraintData;
 import com.nukkitx.protocol.bedrock.data.command.CommandEnumData;
 import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
 import com.nukkitx.protocol.bedrock.data.inventory.*;
@@ -35,7 +37,6 @@ import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.PlayerListPacket;
 import com.nukkitx.protocol.bedrock.packet.StartGamePacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
-import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
 import com.nukkitx.protocol.util.Int2ObjectBiMap;
 import com.nukkitx.proxypass.JsonPacketData;
 import com.nukkitx.proxypass.ProxyPass;
@@ -47,7 +48,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -89,9 +89,9 @@ public class ProxyPlayerSession {
     /**
      * Should only be used when one client is connected
      */
-    public static void injectPacketStatic(String jsonData, String className, String writeTo) throws JsonProcessingException, ClassNotFoundException {
+    public static void injectPacketStatic(JsonNode jsonData, String className, String writeTo) throws JsonProcessingException, ClassNotFoundException {
         Class packetClass = Class.forName(className);
-        BedrockPacket packet = (BedrockPacket) jsonSerializer.readValue(jsonData, packetClass);
+        BedrockPacket packet = (BedrockPacket) jsonSerializer.treeToValue((TreeNode) jsonData, packetClass);
         System.out.println("Sending " + packet.toString() + " to " + writeTo);
         if (writeTo == "client") {
             aSession.downstream.sendPacketImmediately(packet);
@@ -104,11 +104,11 @@ public class ProxyPlayerSession {
      * Should only be used when one client is connected
      * @return TODO
      */
-    public static String getIdBiMapStatic() throws NoSuchFieldException, IllegalAccessException, JsonProcessingException {
+    public static String getIdBiMap(BedrockPacketCodec codec) throws NoSuchFieldException, IllegalAccessException, JsonProcessingException {
         Field biMapField = BedrockPacketCodec.class.getDeclaredField("idBiMap");
         biMapField.setAccessible(true);
-        // TODO: dynamic
-        BedrockPacketCodec codec = Bedrock_v422.V422_CODEC;
+
+        // BedrockPacketCodec codec = Bedrock_v422.V422_CODEC;
         Int2ObjectBiMap<Class<? extends BedrockPacket>> idBiMap = (Int2ObjectBiMap<Class<? extends BedrockPacket>>) biMapField.get(codec);
         // Convert
         Map<Integer, String> idTypeMap = new HashMap<>();
@@ -176,6 +176,7 @@ public class ProxyPlayerSession {
         // https://www.baeldung.com/jackson-custom-serialization
         module.addSerializer(EntityFlags.class, new EntityFlagsSerializer());
         module.addSerializer(NbtList.class, new NbtListSerializer());
+        module.addSerializer(byte[].class, new ByteArraySerializer());
 
         jsonSerializer.registerModule(module);
         // TODO: Only ignore some like packetType
@@ -206,17 +207,7 @@ public class ProxyPlayerSession {
             }
 
             if (proxy.getConfiguration().isUsingPacketQueue()) {
-                proxy.getConfiguration().getCallback().handlePacket(new JsonPacketData(
-                        null,
-                        null,
-                        0,
-                        null,
-                        null,
-                        null,
-                        false,
-                        true,
-                        "disconnect",
-                        ""));
+                proxy.handleEvent("disconnect", "");
             }
 
             /*
@@ -317,17 +308,14 @@ public class ProxyPlayerSession {
                                 buffer.release();
                             }
 
-                            proxy.getConfiguration().getCallback().handlePacket(new JsonPacketData(
+                            proxy.handlePacket(new JsonPacketData(
                                     direction,
                                     jsonSerializer.writeValueAsString(packet),
                                     packet.getPacketId(),
                                     packet.getPacketType(),
                                     packet.getClass().getName(),
                                     bytes,
-                                    thisPacketHandled,
-                                    false,
-                                    "",
-                                    ""));
+                                    thisPacketHandled));
 
                         } catch (JsonProcessingException e) {
                             // TODO: Handle (add error to data structure?)

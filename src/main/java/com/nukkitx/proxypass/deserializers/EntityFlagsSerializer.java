@@ -26,7 +26,13 @@ public class EntityFlagsSerializer extends StdSerializer<EntityFlags> {
     }
 
     @Override
-    public void serialize(
+    public void serialize(EntityFlags value, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+        jgen.writeStartArray();
+        internalSerialize(value, jgen, provider);
+        jgen.writeEndArray();
+    }
+
+    public void internalSerialize(
             EntityFlags value, JsonGenerator jgen, SerializerProvider provider)
             throws IOException, JsonProcessingException {
 

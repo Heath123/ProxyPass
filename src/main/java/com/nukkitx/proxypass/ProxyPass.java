@@ -2,63 +2,40 @@ package com.nukkitx.proxypass;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.ser.FilterProvider;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.nukkitx.math.vector.Vector2f;
-import com.nukkitx.math.vector.Vector3f;
-import com.nukkitx.math.vector.Vector3i;
-import com.nukkitx.nbt.*;
-import com.nukkitx.protocol.bedrock.*;
-import com.nukkitx.protocol.bedrock.data.AttributeData;
-import com.nukkitx.protocol.bedrock.data.GameRuleData;
-import com.nukkitx.protocol.bedrock.data.entity.EntityFlag;
-import com.nukkitx.protocol.bedrock.data.entity.EntityFlags;
-import com.nukkitx.protocol.bedrock.data.inventory.InventoryActionData;
-import com.nukkitx.protocol.bedrock.data.inventory.ItemData;
-import com.nukkitx.protocol.bedrock.data.skin.*;
-import com.nukkitx.protocol.bedrock.packet.*;
-import com.nukkitx.protocol.bedrock.v291.serializer.ResourcePacksInfoSerializer_v291;
+import com.nukkitx.nbt.NBTInputStream;
+import com.nukkitx.nbt.NBTOutputStream;
+import com.nukkitx.nbt.NbtMap;
+import com.nukkitx.nbt.NbtUtils;
+import com.nukkitx.protocol.bedrock.BedrockClient;
+import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
+import com.nukkitx.protocol.bedrock.BedrockServer;
 import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
-import com.nukkitx.protocol.bedrock.v407.Bedrock_v407;
-import com.nukkitx.protocol.bedrock.v408.Bedrock_v408;
-import com.nukkitx.proxypass.deserializers.*;
 import com.nukkitx.proxypass.network.ProxyBedrockEventHandler;
 import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
-
 import io.netty.util.ResourceLeakDetector;
-import it.unimi.dsi.fastutil.longs.LongList;
-import jakarta.xml.bind.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
-import org.msgpack.MessagePack;
 
-import javax.xml.namespace.QName;
-import javax.xml.transform.stream.StreamSource;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -104,6 +81,30 @@ public class ProxyPass {
     private Path baseDir;
     private Path sessionsDir;
     private Path dataDir;
+    public static WebsocketServer websocketServer;
+
+    public void handlePacket(JsonPacketData packet) {
+        ObjectNode rootNode = ProxyPlayerSession.jsonSerializer.createObjectNode();
+        rootNode.put("type", "packet");
+        rootNode.set("data", ProxyPlayerSession.jsonSerializer.valueToTree(packet));
+        try {
+            websocketServer.broadcast(ProxyPlayerSession.jsonSerializer.writeValueAsString(rootNode));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void handleEvent(String eventType, String eventData) {
+        ObjectNode rootNode = ProxyPlayerSession.jsonSerializer.createObjectNode();
+        rootNode.put("type", "event");
+        rootNode.put("eventType", eventType);
+        rootNode.put("eventData", eventData);
+        try {
+            websocketServer.broadcast(ProxyPlayerSession.jsonSerializer.writeValueAsString(rootNode));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     abstract class Vector3iMixin {
@@ -269,23 +270,34 @@ public class ProxyPass {
         System.out.println(test2);
         System.out.println(test2.equals(test)); */
 
-        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
-        ProxyPass proxy = new ProxyPass();
-        try {
-            proxy.boot();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        System.out.println(Arrays.toString(args) + args.length);
+
+        if (args.length > 0 && args[0].equals("--start-from-args")) {
+            if (args.length != 12) {
+                System.out.println(args.length + " argument(s) were provided (12 required)");
+
+                return;
+            }
+            startFromArgs(args[1], Integer.parseInt(args[2]), args[3], Integer.parseInt(args[4]), Integer.parseInt(args[5]), args[6].equals("true"), args[7].equals("true"), args[8], args[9], args[10].equals("true"), Integer.parseInt(args[11]));
+        } else {
+            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+            ProxyPass proxy = new ProxyPass();
+            try {
+                proxy.boot();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     public static void startFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
                                      int maxClients, boolean usePacketQueue, boolean avoidFileCreation, String motd,
-                                     String subMotd, PacketCallback callback) {
+                                     String subMotd, boolean useWebsocketServer, int websocketPort) {
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
         ProxyPass proxy = new ProxyPass();
         try {
             proxy.bootFromArgs(proxyHost, proxyPort, destinationHost, destinationPort, maxClients, usePacketQueue,
-                    avoidFileCreation, motd, subMotd, callback);
+                    avoidFileCreation, motd, subMotd, useWebsocketServer, websocketPort);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -293,7 +305,7 @@ public class ProxyPass {
 
     public void bootFromArgs(String proxyHost, int proxyPort, String destinationHost, int destinationPort,
                              int maxClients, boolean usePacketQueue, boolean avoidFileCreation, String motd,
-                             String subMotd, PacketCallback callback) throws IOException  {
+                             String subMotd, boolean useWebsocketServer, int websocketPort) throws IOException  {
         configuration = new Configuration();
 
         Configuration.Address proxyAddress = new Configuration.Address();
@@ -309,9 +321,14 @@ public class ProxyPass {
         configuration.setMaxClients(maxClients);
         configuration.setUsingPacketQueue(usePacketQueue);
         configuration.setAvoidingFileCreation(avoidFileCreation);
-        configuration.setCallback(callback);
         configuration.setMotd(motd);
         configuration.setSubMotd(subMotd);
+
+        if (useWebsocketServer) {
+            websocketServer = new WebsocketServer(websocketPort, this);
+            websocketServer.start();
+            System.out.println("ProxyPass - Websocket started on port: " + websocketServer.getPort());
+        }
 
         actualBoot(configuration);
     }

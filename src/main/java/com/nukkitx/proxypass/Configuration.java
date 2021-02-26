@@ -44,10 +44,6 @@ public class Configuration {
     private boolean avoidingFileCreation = false;
 
     // For pakkit, not exposed in config.yml
-    // Callback for packets
-    private PacketCallback callback;
-
-    // For pakkit, not exposed in config.yml
     // The MOTD to use
     private String motd = "ProxyPass";
     private String subMotd = "https://github.com/NukkitX/ProxyPass";

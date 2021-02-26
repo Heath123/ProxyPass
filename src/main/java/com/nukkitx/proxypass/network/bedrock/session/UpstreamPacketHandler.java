@@ -15,7 +15,6 @@ import com.nukkitx.protocol.bedrock.handler.BedrockPacketHandler;
 import com.nukkitx.protocol.bedrock.packet.LoginPacket;
 import com.nukkitx.protocol.bedrock.packet.PlayStatusPacket;
 import com.nukkitx.protocol.bedrock.util.EncryptionUtils;
-import com.nukkitx.proxypass.JsonPacketData;
 import com.nukkitx.proxypass.ProxyPass;
 import com.nukkitx.proxypass.network.bedrock.util.ForgeryUtils;
 import io.netty.util.AsciiString;
@@ -134,17 +133,7 @@ public class UpstreamPacketHandler implements BedrockPacketHandler {
             if (throwable != null) {
                 log.error("Unable to connect to downstream server " + proxy.getTargetAddress(), throwable);
                 if (proxy.getConfiguration().isUsingPacketQueue()) {
-                    proxy.getConfiguration().getCallback().handlePacket(new JsonPacketData(
-                            null,
-                            null,
-                            0,
-                            null,
-                            null,
-                            null,
-                            false,
-                            true,
-                            "unableToConnect",
-                            proxy.getTargetAddress().toString()));
+                    this.proxy.handleEvent("unableToConnect", this.proxy.getTargetAddress().toString());
                 }
                 return;
             }
@@ -178,6 +167,12 @@ public class UpstreamPacketHandler implements BedrockPacketHandler {
             downstream.setPacketHandler(new DownstreamPacketHandler(downstream, proxySession, this.proxy));
 
             log.debug("Downstream connected");
+
+            try {
+                this.proxy.handleEvent("filteringPackets", ProxyPlayerSession.getIdBiMap(downstream.getPacketCodec()));
+            } catch (NoSuchFieldException|IllegalAccessException|JsonProcessingException e) {
+                e.printStackTrace();
+            }
 
             //SkinUtils.saveSkin(proxySession, this.skinData);
         });
