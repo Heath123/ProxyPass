@@ -35,6 +35,8 @@ public class ItemDataDeserializer extends StdDeserializer<ItemData> {
         String[] canBreak = ProxyPlayerSession.jsonSerializer.readValue(node.get("canBreak").traverse(), String[].class);
         long blockingTicks = node.get("blockingTicks").longValue();
 
-        return ItemData.fromNet(netId, id, damage, count, tag, canPlace, canBreak, blockingTicks);
+        ItemData.Builder itemBuilder = ItemData.builder();
+        itemBuilder.id(id).damage(damage).count(count).tag(tag).canPlace(canPlace).canBreak(canBreak).blockingTicks(blockingTicks).netId(netId);
+        return itemBuilder.build();
     }
 }

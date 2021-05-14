@@ -90,6 +90,7 @@ public class DownstreamPacketHandler implements BedrockPacketHandler {
 //        BlockPaletteUtils.convertToJson(proxy, palette);
 
         List<DataEntry> itemData = new ArrayList<>();
+        LinkedHashMap<String, Integer> legacyItems = new LinkedHashMap<>();
 
         for (StartGamePacket.ItemEntry entry : packet.getItemEntries()) {
             if (entry.getId() > 255) {
