@@ -18,7 +18,8 @@ import com.nukkitx.nbt.NbtUtils;
 import com.nukkitx.protocol.bedrock.BedrockClient;
 import com.nukkitx.protocol.bedrock.BedrockPacketCodec;
 import com.nukkitx.protocol.bedrock.BedrockServer;
-import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.bedrock.v428.Bedrock_v428;
+import com.nukkitx.protocol.bedrock.v431.Bedrock_v431;
 import com.nukkitx.proxypass.network.ProxyBedrockEventHandler;
 import com.nukkitx.proxypass.network.bedrock.session.ProxyPlayerSession;
 import io.netty.util.ResourceLeakDetector;
@@ -36,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,9 +53,12 @@ public class ProxyPass {
     public static final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     public static final YAMLMapper YAML_MAPPER = (YAMLMapper) new YAMLMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     public static final String MINECRAFT_VERSION;
-    public static final BedrockPacketCodec CODEC = Bedrock_v422.V422_CODEC;
+    public static final BedrockPacketCodec CODEC = Bedrock_v431.V431_CODEC;
     public static final int PROTOCOL_VERSION = CODEC.getProtocolVersion();
     private static final DefaultPrettyPrinter PRETTY_PRINTER = new DefaultPrettyPrinter();
+    public static Map<Integer, String> legacyIdMap = new HashMap<>();
+
+    public static final int SHIELD_RUNTIME_ID = 355; // Change this when the item palette changes.
 
     static {
         DefaultIndenter indenter = new DefaultIndenter("    ", "\n");
